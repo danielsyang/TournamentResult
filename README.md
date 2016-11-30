@@ -6,6 +6,7 @@ Before you run this project, be sure that you have VirtualBox and Vagrant instal
 
 After cloning this project go to **vagrant/** folder then run the following command, on terminal, to initialize the virtual machine.
 **sudo su**
+
 **vagrant up**
 
 Then run the ssh command to access your VM.
