@@ -10,21 +10,29 @@ DELETE_ALL_PLAYER = "DELETE FROM player"
 COUNT_PLAYER = "SELECT COUNT(*) FROM player"
 INSERT_MATCH = "INSERT INTO MATCHES (winner, loser) values (%s, %s)"
 DELETE_ALL_MATCHES = "DELETE FROM matches"
-PLAYER_STANDINGS = ("SELECT  pid AS player_id, name, COALESCE(win_count, 0) AS total_win, total_match FROM "
-                        "(SELECT pl.player_id AS pid, pl.name AS name, count(*) AS total_match FROM "
-                                "player pl,"
-                                "matches mat "
-                                "WHERE mat.winner = pl.player_id "
-                                "OR    mat.loser = pl.player_id "
-                                "GROUP BY pl.player_id "
-                                "ORDER BY pl.player_id) AS tm "
-                        "LEFT JOIN "
-                        "(SELECT pl.player_id AS plid, win_count FROM "
-                                "player pl, "
-                                "(SELECT winner, count(*) AS win_count FROM matches GROUP BY winner) AS m "
-                                "WHERE m.winner = pl.player_id) AS wm "
-                        "ON tm.pid = wm.plid "
-                        "ORDER BY total_win desc;")
+
+PLAYER_STANDINGS = ("SELECT  play.player_id AS p_id,"
+                            "play.name as name, "
+                            "COALESCE(win_count,0) as win_count, "
+                            "COALESCE(total_match, 0) as total_match "
+                            "FROM player play "
+                            "LEFT JOIN (SELECT  pl.player_id,"
+                                                "COUNT(*) AS total_match FROM player pl, "
+                                                "matches mat "
+                                                "WHERE mat.winner = pl.player_id "
+                                                "OR mat.loser = pl.player_id "
+                                                "GROUP BY pl.player_id "
+                                                "ORDER BY pl.player_id) AS p1 "
+                                                "ON play.player_id = p1.player_id "
+                            "LEFT JOIN (SELECT pl.player_id AS plid, "
+                                        "win_count "
+                                        "FROM player pl, "
+                                        "(SELECT    winner, "
+                                                    "count(*) AS win_count "
+                                                    "FROM matches "
+                                                    "GROUP BY winner) AS m "
+                                        "WHERE m.winner = pl.player_id) AS wm "
+                            "ON p1.player_id = wm.plid ")
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
@@ -137,35 +145,21 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-    conn = connect()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM matches")
-    result_count = cursor.fetchall()
+    result_count = playerStandings()
 
     if not result_count:
+        conn = connect()
+        cursor = conn.cursor()
         cursor.execute("SELECT * FROM player")
         result_count = cursor.fetchall()
-        i = 0
-        list_tup = []
-        while i < len(result_count):
-            tup = (result_count[i][0], result_count[i][1], result_count[i+1][0], result_count[i+1][1])
-            list_tup.append(tup)
-            i += 2
-
         cursor.close()
         conn.close()
 
-        return list_tup
-    else:
-        list_standing = playerStandings()
-        i = 0
-        list_tup = []
-        while i < len(list_standing):            
-            tup = (list_standing[i][0], list_standing[i][1], list_standing[i+1][0], list_standing[i+1][1])
-            list_tup.append(tup)
-            i += 2
+    i = 0
+    list_tup = []
+    while i < len(result_count):
+        tup = (result_count[i][0], result_count[i][1], result_count[i+1][0], result_count[i+1][1])
+        list_tup.append(tup)
+        i += 2
 
-        return list_tup
-
-if __name__ == '__main__':
-    print swissPairings()
+    return list_tup
