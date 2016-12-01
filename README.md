@@ -15,5 +15,7 @@ After that all the code will be available on this path
 * **/vagrant/tournament**
 
 To execute the entire project do the following:
+
 1. **psql -f tournament.sql**
+
 2. **python tournament_test.py**
